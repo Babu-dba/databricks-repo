@@ -1,0 +1,24 @@
+from pyspark.sql.functions import col, count, to_date, when
+
+source_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Landing"
+bronze_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Bronze"
+silver_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Silver"
+gold_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Gold"
+schema_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/schemas"
+badrecords_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/badrecords"
+
+
+
+dbutils.widgets.text("silver_transaction","")
+silver_transaction=dbutils.widgets.get("silver_transaction")
+
+
+# Load Delta table
+try:
+    df = spark.read.format("delta").load(f"{bronze_loc}/{silver_transaction}/")
+except Exception as e:
+    raise FileNotFoundError(f"Path does not exist or cannot be read: {bronze_loc}/{silver_transaction}/\nOriginal error: {e}")
+
+# Find duplicates based on one or more columns
+duplicates = df.groupBy("Transaction_ID").agg(count("*").alias("cnt")).filter(col("cnt") > 1)
+duplicates.show()
