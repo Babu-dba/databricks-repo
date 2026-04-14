@@ -1,0 +1,23 @@
+from pyspark.sql.functions import current_date, lit
+
+
+source_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Landing"
+bronze_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Bronze"
+silver_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Silver"
+gold_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/Gold"
+schema_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/schemas"
+badrecords_loc="s3://amzn-s3-babude-bucket/IDUKKI_CBS/badrecords"
+
+
+# Example: Customer Dimension
+
+silver_cust=spark.table("idukki_cbs.silver.transactions")
+
+dim_cust_updates=(
+    silver_cust
+    .withColumn("effective_start_date", current_date())
+    .withColumn("effective_end_date", lit(None))
+    .withColumn("Current_flag", lit(True))
+)
+
+dim_cust_updates.write.format("delta").mode("append").save(f"{gold_loc}/dim_customer")
